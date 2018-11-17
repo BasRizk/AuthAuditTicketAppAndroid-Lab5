@@ -6,14 +6,20 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.BaseColumns;
+import android.content.DialogInterface;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.view.LayoutInflater;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedWriter;
@@ -26,8 +32,9 @@ import java.util.List;
 public class LogIn extends AppCompatActivity {
 
     ActionBar actionBar;
-
     Toolbar m_toolbar;
+    Menu menu;
+    String username = "user";
 
     String current_username;
     String current_timestamp;
@@ -72,6 +79,7 @@ public class LogIn extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.toolbar_options, menu);
+        this.menu = menu;
         return true;
     }
 
@@ -79,11 +87,19 @@ public class LogIn extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_login:
-                // User chose the "Login" item, show the app settings UI...
+                loginClicked();
                 return true;
 
             case R.id.action_settings:
-                // User chose the "Settings" action, mark the current item
+                settingsClicked();
+                return true;
+
+            case R.id.action_user:
+//                userClicked();
+                return true;
+
+            case R.id.action_logout:
+                logoutClicked();
                 return true;
             case R.id.action_exportCSV:
                 if(createCsvFile())
@@ -194,4 +210,98 @@ public class LogIn extends AppCompatActivity {
 
     }
 
+
+    public void loginClicked(){
+        LayoutInflater li = LayoutInflater.from(this);
+        View prompt = li.inflate(R.layout.login_dialog, null);
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setView(prompt);
+        final EditText user = (EditText) prompt.findViewById(R.id.login_name);
+        //user.setText(Login_USER); //login_USER is loaded from previous session (optional)
+        alertDialogBuilder.setTitle("Login");
+        alertDialogBuilder.setCancelable(false)
+                .setPositiveButton("Submit", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id)
+                    {
+                        username = user.getText().toString();
+                        MenuItem action_login = menu.findItem(R.id.action_login);
+                        MenuItem action_user = menu.findItem(R.id.action_user);
+                        action_user.setTitle(username);
+                        action_login.setVisible(false);
+                        action_user.setVisible(true);
+                    }
+                });
+
+        alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int id)
+            {
+                dialog.cancel();
+            }
+        });
+
+        alertDialogBuilder.show();
+    }
+
+    public void settingsClicked() {
+        LayoutInflater li = LayoutInflater.from(this);
+        View prompt = li.inflate(R.layout.settings_dialog, null);
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setView(prompt);
+        alertDialogBuilder.setTitle("Settings");
+        alertDialogBuilder.setCancelable(false)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id)
+                    {
+//                        String username = user.getText().toString();
+                    }
+                });
+
+        alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int id)
+            {
+                dialog.cancel();
+            }
+        });
+
+        alertDialogBuilder.show();
+    }
+
+    public void logoutClicked() {
+        username = "user";
+        MenuItem action_login = menu.findItem(R.id.action_login);
+        MenuItem action_user = menu.findItem(R.id.action_user);
+        action_user.setTitle(username);
+        action_login.setVisible(true);
+        action_user.setVisible(false);
+    }
+
+//    public void userClicked() {
+//        LayoutInflater li = LayoutInflater.from(this);
+//        View prompt = li.inflate(R.layout.settings_dialog, null);
+//        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+//        alertDialogBuilder.setView(prompt);
+//        alertDialogBuilder.setTitle("Settings");
+//        alertDialogBuilder.setCancelable(false)
+//                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialog, int id)
+//                    {
+////                        String username = user.getText().toString();
+//                    }
+//                });
+//
+//        alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+//            @Override
+//            public void onClick(DialogInterface dialog, int id)
+//            {
+//                dialog.cancel();
+//            }
+//        });
+//
+//        alertDialogBuilder.show();
+//    }
 }
