@@ -108,7 +108,6 @@ public class LogIn extends AppCompatActivity {
         try {
             // <span id="IL_AD8" class="IL_AD">check for</span> SD card
             root = Environment.getExternalStorageDirectory();
-            // TODO Just for now
             Log.i("DB","path.." +root.getAbsolutePath());
 
             //check sdcard permission
