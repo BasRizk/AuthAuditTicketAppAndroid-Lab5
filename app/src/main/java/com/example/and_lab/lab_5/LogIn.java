@@ -3,7 +3,6 @@ package com.example.and_lab.lab_5;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.net.Uri;
 import android.os.Environment;
 import android.provider.BaseColumns;
 import android.content.DialogInterface;
@@ -19,26 +18,27 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Date;
+import java.util.Locale;
 
 public class LogIn extends AppCompatActivity {
 
     ActionBar actionBar;
     Toolbar m_toolbar;
     Menu menu;
-    String username = "user";
 
-    String current_username;
-    String current_timestamp;
-    FeedReaderDbHelper mDbHelper;
+    private String currentUsername;
+    private String currentTimestamp;
+    private boolean loggedIn;
+    private FeedReaderDbHelper mDbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +46,7 @@ public class LogIn extends AppCompatActivity {
         setContentView(R.layout.activity_log_in);
         m_toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(m_toolbar);
+        loggedIn = false;
         /*
         To use the ActionBar utility methods, call the activity's getSupportActionBar() method.
         This method returns a reference to an appcompat ActionBar object.
@@ -57,11 +58,6 @@ public class LogIn extends AppCompatActivity {
         /* Initializing the DB (Probably) */
         mDbHelper = new FeedReaderDbHelper(this);
 
-
-        current_username = "Login-Timeline";
-        current_timestamp = "Login_Occurances";
-        saveToDB(current_username, current_timestamp);
-
     }
 
     @Override
@@ -70,9 +66,9 @@ public class LogIn extends AppCompatActivity {
         super.onDestroy();
     }
 
-    private void logIn(String username) {
-
-        actionBar.setTitle(username);
+    private String getCurrentTimestamp() {
+        SimpleDateFormat s = new SimpleDateFormat("ddMMyyyyhhmmss", Locale.US);
+        return s.format(new Date());
     }
 
     @Override
@@ -177,7 +173,7 @@ public class LogIn extends AppCompatActivity {
                 sortOrder               // The sort order
         );
 
-        ArrayList<String> rows = new ArrayList();
+        ArrayList<String> rows = new ArrayList<String>();
         while(cursor.moveToNext()) {
             String username = cursor.getString(
                     cursor.getColumnIndexOrThrow(FeedReaderContract.FeedEntry.COLUMN_NAME_USERNAME));
@@ -201,13 +197,18 @@ public class LogIn extends AppCompatActivity {
         // Create a new map of values, where column names are the keys
         ContentValues values = new ContentValues();
 
-        values.put(FeedReaderContract.FeedEntry.COLUMN_NAME_USERNAME, current_username);
-        values.put(FeedReaderContract.FeedEntry.COLUMN_NAME_TIMESTAMP, current_timestamp);
+        values.put(FeedReaderContract.FeedEntry.COLUMN_NAME_USERNAME, currentUsername);
+        values.put(FeedReaderContract.FeedEntry.COLUMN_NAME_TIMESTAMP, currentTimestamp);
 
         // Insert the new row, returning the primary key value of the new row
         long newRowId = db.insert(FeedReaderContract.FeedEntry.TABLE_NAME, null, values);
         Toast.makeText(getApplicationContext(),"New Entry in the DB with ID = " + newRowId,Toast.LENGTH_SHORT).show();
 
+    }
+
+    private void saveLoggedInUser() {
+        currentTimestamp = getCurrentTimestamp();
+        saveToDB(currentUsername, currentTimestamp);
     }
 
 
@@ -216,7 +217,7 @@ public class LogIn extends AppCompatActivity {
         View prompt = li.inflate(R.layout.login_dialog, null);
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
         alertDialogBuilder.setView(prompt);
-        final EditText user = (EditText) prompt.findViewById(R.id.login_name);
+        final EditText user = prompt.findViewById(R.id.login_name);
         //user.setText(Login_USER); //login_USER is loaded from previous session (optional)
         alertDialogBuilder.setTitle("Login");
         alertDialogBuilder.setCancelable(false)
@@ -224,12 +225,15 @@ public class LogIn extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int id)
                     {
-                        username = user.getText().toString();
+                        currentUsername = user.getText().toString();
                         MenuItem action_login = menu.findItem(R.id.action_login);
                         MenuItem action_user = menu.findItem(R.id.action_user);
-                        action_user.setTitle(username);
+                        action_user.setTitle(currentUsername);
                         action_login.setVisible(false);
                         action_user.setVisible(true);
+
+                        saveLoggedInUser();
+
                     }
                 });
 
@@ -271,10 +275,10 @@ public class LogIn extends AppCompatActivity {
     }
 
     public void logoutClicked() {
-        username = "user";
+        currentUsername = "user";
         MenuItem action_login = menu.findItem(R.id.action_login);
         MenuItem action_user = menu.findItem(R.id.action_user);
-        action_user.setTitle(username);
+        action_user.setTitle(currentUsername);
         action_login.setVisible(true);
         action_user.setVisible(false);
     }
