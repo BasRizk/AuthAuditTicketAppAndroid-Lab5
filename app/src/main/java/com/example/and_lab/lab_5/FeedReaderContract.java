@@ -13,7 +13,9 @@ public class FeedReaderContract {
             "CREATE TABLE " + FeedEntry.TABLE_NAME + " (" +
                     FeedEntry._ID + " INTEGER PRIMARY KEY," +
                     FeedEntry.COLUMN_NAME_USERNAME + " TEXT," +
-                    FeedEntry.COLUMN_NAME_TIMESTAMP + " TEXT)";
+                    FeedEntry.COLUMN_NAME_TIMESTAMP + " TEXT," +
+                    FeedEntry.COLUMN_NAME_LONGITUDE + " TEXT," +
+                    FeedEntry.COLUMN_NAME_LATITUDE + " TEXT)";
 
     private static final String SQL_DELETE_ENTRIES =
             "DROP TABLE IF EXISTS " + FeedEntry.TABLE_NAME;
@@ -25,6 +27,8 @@ public class FeedReaderContract {
         public static final String TABLE_NAME = "LoginTimestamps";
         public static final String COLUMN_NAME_USERNAME = "username";
         public static final String COLUMN_NAME_TIMESTAMP = "timestamp";
+        public static final String COLUMN_NAME_LONGITUDE = "longitude";
+        public static final String COLUMN_NAME_LATITUDE = "latitude";
     }
 }
 
@@ -38,7 +42,9 @@ class FeedReaderDbHelper extends SQLiteOpenHelper {
             "CREATE TABLE " + FeedReaderContract.FeedEntry.TABLE_NAME + " (" +
                     FeedReaderContract.FeedEntry._ID + " INTEGER PRIMARY KEY," +
                     FeedReaderContract.FeedEntry.COLUMN_NAME_USERNAME + " TEXT," +
-                    FeedReaderContract.FeedEntry.COLUMN_NAME_TIMESTAMP + " TEXT)";
+                    FeedReaderContract.FeedEntry.COLUMN_NAME_TIMESTAMP + " TEXT," +
+                    FeedReaderContract.FeedEntry.COLUMN_NAME_LONGITUDE + " TEXT," +
+                    FeedReaderContract.FeedEntry.COLUMN_NAME_LATITUDE + " TEXT)";
 
     private static final String SQL_DELETE_ENTRIES =
             "DROP TABLE IF EXISTS " + FeedReaderContract.FeedEntry.TABLE_NAME;
