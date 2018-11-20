@@ -26,6 +26,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
@@ -54,10 +55,18 @@ public class LogIn extends AppCompatActivity {
     private LocationListener locationListener;
     private FeedReaderDbHelper mDbHelper;
 
+    private ListView listView;
+    private LogInRecordAdapter mAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log_in);
+
+        listView = (ListView) findViewById(R.id.record_view);
+
+        if(!isLoggedIn)
+            listView.setVisibility(View.INVISIBLE);
 
         m_toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(m_toolbar);
@@ -142,6 +151,8 @@ public class LogIn extends AppCompatActivity {
             case R.id.action_login:
                 setCurrentLocation();
                 loginClicked();
+//                if(isLoggedIn)
+//                    listView.setVisibility(View.VISIBLE);
                 return true;
 
             case R.id.action_settings:
@@ -155,6 +166,8 @@ public class LogIn extends AppCompatActivity {
             case R.id.action_logout:
                 setCurrentLocation();
                 logoutClicked();
+//                if(!isLoggedIn)
+//                    listView.setVisibility(View.INVISIBLE);
                 return true;
 
             case R.id.action_exportCSV:
@@ -173,6 +186,12 @@ public class LogIn extends AppCompatActivity {
 
     private boolean createCsvFile() {
         String filename = "timestamps.csv";
+
+        ArrayList<LogInRecord> recordList = new ArrayList<>();
+        mAdapter = new LogInRecordAdapter(this,recordList);
+        listView.setAdapter(mAdapter);
+        recordList.add(new LogInRecord("ID", "username" , "timestamp", "longitude", "latitude"));
+        listView.setVisibility(View.VISIBLE);
 
         Uri uri = Uri.parse("android.resource://" + getPackageName() + "/raw/" + filename);
         Boolean write_successful = false;
@@ -195,6 +214,8 @@ public class LogIn extends AppCompatActivity {
                 ArrayList<String> tableEntries = readFromDB();
                 for (String row : tableEntries) {
                     out.write(row);
+                    String[] row_splitted = row.split(",");
+                    recordList.add(new LogInRecord("a", row_splitted[0], row_splitted[1], row_splitted[2], row_splitted[3]));
                     Log.v("DBRead", "" + row);
                 }
                 out.close();
