@@ -26,6 +26,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.RadioButton;
@@ -59,6 +60,7 @@ public class LogIn extends AppCompatActivity {
 
     private ListView listView;
     private LogInRecordAdapter mAdapter;
+    private Button clearButton;
 
     private SharedPreferences sharedPref;
 
@@ -68,23 +70,10 @@ public class LogIn extends AppCompatActivity {
         setContentView(R.layout.activity_log_in);
 
         listView = findViewById(R.id.record_view);
-
-
-        /* Shared Preferences */
-        sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        currentUsername = sharedPref.getString("REGISTERED_USERNAME", null);
-        if(currentUsername != null) {
-            loginClicked();
-        }
-
-        if(!isLoggedIn)
-            listView.setVisibility(View.INVISIBLE);
+        clearButton = findViewById(R.id.clear_b);
 
         m_toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(m_toolbar);
-
-        isLoggedIn = false;
-        isLocationEnabled = false;
 
         locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
@@ -127,15 +116,20 @@ public class LogIn extends AppCompatActivity {
     protected void onDestroy() {
 
         if(currentUsername != null)
-            saveUsernameInstance();
+            saveUserInstance();
         mDbHelper.close();
         super.onDestroy();
     }
 
-    private void saveUsernameInstance() {
+    private void saveUserInstance() {
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putString("REGISTERED_USERNAME", currentUsername);
+        if(isLocationEnabled)
+            editor.putString("REGISTERED_LOCATION_STATUS", "true");
+        else
+            editor.putString("REGISTERED_LOCATION_STATUS", "false");
+
         editor.commit();
 
         if(currentUsername != null)
@@ -166,7 +160,7 @@ public class LogIn extends AppCompatActivity {
     }
 
     private String getCurrentTimestamp() {
-        SimpleDateFormat s = new SimpleDateFormat("ddMMyyyyhhmmss", Locale.US);
+        SimpleDateFormat s = new SimpleDateFormat("dd/MM/yyyy\nhh:mm:ss", Locale.US);
         return s.format(new Date());
     }
 
@@ -177,6 +171,30 @@ public class LogIn extends AppCompatActivity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.toolbar_options, menu);
         this.menu = menu;
+
+        isLoggedIn = false;
+        isLocationEnabled = false;
+
+        /* Shared Preferences */
+        sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        currentUsername = sharedPref.getString("REGISTERED_USERNAME", null);
+        String locationStatus = sharedPref.getString("REGISTERED_LOCATION_STATUS", null);
+        if(locationStatus.equals("true"))
+            isLocationEnabled = true;
+        else
+            isLocationEnabled = false;
+
+        if(currentUsername != null) {
+            loginSetup();
+        }
+
+        if(!isLoggedIn) {
+            listView.setVisibility(View.INVISIBLE);
+            clearButton.setVisibility(View.INVISIBLE);
+            MenuItem action_CSV = menu.findItem(R.id.action_exportCSV);
+            action_CSV.setVisible(false);
+        }
+
         return true;
     }
 
@@ -202,8 +220,12 @@ public class LogIn extends AppCompatActivity {
             case R.id.action_logout:
                 setCurrentLocation();
                 logoutClicked();
-                //if(!isLoggedIn)
-                  //  listView.setVisibility(View.INVISIBLE);
+                if(!isLoggedIn) {
+                    listView.setVisibility(View.INVISIBLE);
+                    clearButton.setVisibility(View.INVISIBLE);
+                    MenuItem action_CSV = menu.findItem(R.id.action_exportCSV);
+                    action_CSV.setVisible(false);
+                }
                 return true;
 
             case R.id.action_exportCSV:
@@ -220,6 +242,18 @@ public class LogIn extends AppCompatActivity {
         }
     }
 
+    public void loginSetup() {
+        MenuItem action_login = menu.findItem(R.id.action_login);
+        MenuItem action_CSV = menu.findItem(R.id.action_exportCSV);
+        MenuItem action_user = menu.findItem(R.id.action_user);
+        clearButton.setVisibility(View.VISIBLE);
+        action_user.setTitle(currentUsername);
+        action_login.setVisible(false);
+        action_CSV.setVisible(true);
+        action_user.setVisible(true);
+        isLoggedIn = true;
+    }
+
     public void loginClicked() {
         LayoutInflater li = LayoutInflater.from(this);
         View prompt = li.inflate(R.layout.login_dialog, null);
@@ -233,16 +267,9 @@ public class LogIn extends AppCompatActivity {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
                         currentUsername = user.getText().toString();
-                        saveUsernameInstance();
+                        saveUserInstance();
                         saveLoggedInUserToDB();
-
-                        MenuItem action_login = menu.findItem(R.id.action_login);
-                        MenuItem action_user = menu.findItem(R.id.action_user);
-                        action_user.setTitle(currentUsername);
-                        action_login.setVisible(false);
-                        action_user.setVisible(true);
-                        isLoggedIn = true;
-
+                        loginSetup();
                     }
                 });
 
@@ -282,6 +309,8 @@ public class LogIn extends AppCompatActivity {
                             isLocationEnabled = false;
                         }
 
+                        saveUserInstance();
+
                         Log.i("locationInfo", "" + isLocationEnabled);
 
                     }
@@ -300,7 +329,7 @@ public class LogIn extends AppCompatActivity {
 
     public void logoutClicked() {
         currentUsername = null;
-        saveUsernameInstance();
+        saveUserInstance();
 
         MenuItem action_login = menu.findItem(R.id.action_login);
         MenuItem action_user = menu.findItem(R.id.action_user);
@@ -318,7 +347,7 @@ public class LogIn extends AppCompatActivity {
         ArrayList<LogInRecord> recordList = new ArrayList<>();
         mAdapter = new LogInRecordAdapter(this,recordList);
         listView.setAdapter(mAdapter);
-        recordList.add(new LogInRecord("ID", "username" , "timestamp", "longitude", "latitude"));
+        recordList.add(new LogInRecord("username" , "timestamp", "longitude", "latitude"));
         listView.setVisibility(View.VISIBLE);
 
         Uri uri = Uri.parse("android.resource://" + getPackageName() + "/raw/" + filename);
@@ -343,7 +372,7 @@ public class LogIn extends AppCompatActivity {
                 for (String row : tableEntries) {
                     out.write(row);
                     String[] row_splitted = row.split(",");
-                    recordList.add(new LogInRecord("a", row_splitted[0], row_splitted[1], row_splitted[2], row_splitted[3]));
+                    recordList.add(new LogInRecord(row_splitted[0], row_splitted[1], row_splitted[2], row_splitted[3]));
                     Log.v("DBRead", "" + row);
                 }
                 out.close();

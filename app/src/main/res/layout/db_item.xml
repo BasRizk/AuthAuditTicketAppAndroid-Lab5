@@ -4,45 +4,41 @@
     android:layout_height="match_parent"
     android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/id_t"
-        android:layout_height="wrap_content"
-        android:layout_width="0dp"
-        android:layout_weight="1"
-        android:layout_margin="8dp"
-        android:textSize="8dp"/>
-
 
     <TextView
         android:id="@+id/username_t"
         android:layout_height="wrap_content"
         android:layout_width="0dp"
         android:layout_weight="1"
-        android:layout_margin="8dp"
-        android:textSize="8dp"/>
+        android:textAlignment="center"
+        android:layout_margin="4dp"
+        android:textSize="12dp"/>
 
     <TextView
         android:id="@+id/timestamp_t"
         android:layout_width="0dp"
         android:layout_weight="1"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:textSize="8dp"/>
+        android:textAlignment="center"
+        android:layout_margin="4dp"
+        android:textSize="12dp"/>
 
     <TextView
         android:id="@+id/longitude_t"
         android:layout_width="0dp"
         android:layout_weight="1"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:textSize="8dp"/>
+        android:textAlignment="center"
+        android:layout_margin="4dp"
+        android:textSize="12dp"/>
 
     <TextView
         android:id="@+id/latitude_t"
         android:layout_width="0dp"
         android:layout_weight="1"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:textSize="8dp"/>
+        android:textAlignment="center"
+        android:layout_margin="4dp"
+        android:textSize="12dp"/>
 
 </LinearLayout>

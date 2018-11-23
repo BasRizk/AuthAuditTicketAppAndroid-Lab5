@@ -32,9 +32,6 @@ public class LogInRecordAdapter extends ArrayAdapter<LogInRecord> {
 
         LogInRecord currentRecord = recordList.get(position);
 
-        TextView id = (TextView) listItem.findViewById(R.id.id_t);
-        id.setText(currentRecord.get_id());
-
         TextView username = (TextView) listItem.findViewById(R.id.username_t);
         username.setText(currentRecord.getUsername());
 
