@@ -1,8 +1,9 @@
 package com.example.and_lab.lab_5;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.ContentValues;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -52,24 +53,36 @@ public class LogIn extends AppCompatActivity {
     private String currentLatitude;
     private boolean isLoggedIn;
     private boolean isLocationEnabled;
+
     private LocationListener locationListener;
     private FeedReaderDbHelper mDbHelper;
 
     private ListView listView;
     private LogInRecordAdapter mAdapter;
 
+    private SharedPreferences sharedPref;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log_in);
 
-        listView = (ListView) findViewById(R.id.record_view);
+        listView = findViewById(R.id.record_view);
+
+
+        /* Shared Preferences */
+        sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        currentUsername = sharedPref.getString("REGISTERED_USERNAME", null);
+        if(currentUsername != null) {
+            loginClicked();
+        }
 
         if(!isLoggedIn)
             listView.setVisibility(View.INVISIBLE);
 
         m_toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(m_toolbar);
+
         isLoggedIn = false;
         isLocationEnabled = false;
 
@@ -105,20 +118,36 @@ public class LogIn extends AppCompatActivity {
          */
         actionBar = getSupportActionBar();
 
-        /* Initializing the DB (Probably) */
+        /* Initializing the DB instance*/
         mDbHelper = new FeedReaderDbHelper(this);
 
     }
 
     @Override
     protected void onDestroy() {
+
+        if(currentUsername != null)
+            saveUsernameInstance();
         mDbHelper.close();
         super.onDestroy();
     }
 
-    private String getCurrentTimestamp() {
-        SimpleDateFormat s = new SimpleDateFormat("ddMMyyyyhhmmss", Locale.US);
-        return s.format(new Date());
+    private void saveUsernameInstance() {
+        sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putString("REGISTERED_USERNAME", currentUsername);
+        editor.commit();
+
+        if(currentUsername != null)
+            Log.d("LOGIN_LOGOUT","Username saved into the DB:" + currentUsername);
+        else
+            Log.d("LOGIN_LOGOUT", "Erasing username saved into the DB");
+    }
+
+    private void saveLoggedInUserToDB() {
+        currentTimestamp = getCurrentTimestamp();
+        Log.i("locationInfo", "\n status: " + isLocationEnabled + "\n long:" + currentLongitude + "\n lat: " + currentLatitude);
+        saveToDB();
     }
 
     private void setCurrentLocation() {
@@ -136,6 +165,13 @@ public class LogIn extends AppCompatActivity {
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 10, locationListener);
     }
 
+    private String getCurrentTimestamp() {
+        SimpleDateFormat s = new SimpleDateFormat("ddMMyyyyhhmmss", Locale.US);
+        return s.format(new Date());
+    }
+
+
+    /* Action Bar functions methods */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -151,8 +187,8 @@ public class LogIn extends AppCompatActivity {
             case R.id.action_login:
                 setCurrentLocation();
                 loginClicked();
-//                if(isLoggedIn)
-//                    listView.setVisibility(View.VISIBLE);
+               // if(isLoggedIn)      // TODO why do we use this?
+                 //   listView.setVisibility(View.VISIBLE);
                 return true;
 
             case R.id.action_settings:
@@ -166,8 +202,8 @@ public class LogIn extends AppCompatActivity {
             case R.id.action_logout:
                 setCurrentLocation();
                 logoutClicked();
-//                if(!isLoggedIn)
-//                    listView.setVisibility(View.INVISIBLE);
+                //if(!isLoggedIn)
+                  //  listView.setVisibility(View.INVISIBLE);
                 return true;
 
             case R.id.action_exportCSV:
@@ -184,6 +220,98 @@ public class LogIn extends AppCompatActivity {
         }
     }
 
+    public void loginClicked() {
+        LayoutInflater li = LayoutInflater.from(this);
+        View prompt = li.inflate(R.layout.login_dialog, null);
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setView(prompt);
+        final EditText user = prompt.findViewById(R.id.login_name);
+        //user.setText(Login_USER); //login_USER is loaded from previous session (optional)
+        alertDialogBuilder.setTitle("Login");
+        alertDialogBuilder.setCancelable(false)
+                .setPositiveButton("Submit", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        currentUsername = user.getText().toString();
+                        saveUsernameInstance();
+                        saveLoggedInUserToDB();
+
+                        MenuItem action_login = menu.findItem(R.id.action_login);
+                        MenuItem action_user = menu.findItem(R.id.action_user);
+                        action_user.setTitle(currentUsername);
+                        action_login.setVisible(false);
+                        action_user.setVisible(true);
+                        isLoggedIn = true;
+
+                    }
+                });
+
+        alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+            }
+        });
+
+        alertDialogBuilder.show();
+
+    }
+
+    public void settingsClicked() {
+        LayoutInflater li = LayoutInflater.from(this);
+        final View prompt = li.inflate(R.layout.settings_dialog, null);
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setView(prompt);
+        alertDialogBuilder.setTitle("Settings");
+
+        RadioGroup radioGroup = prompt.findViewById(R.id.radio_location_group);
+        if(isLocationEnabled) {
+            radioGroup.check(R.id.enable_location);
+        } else {
+            radioGroup.check(R.id.disable_location);
+        }
+
+        alertDialogBuilder.setCancelable(false)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        RadioButton enable_location = prompt.findViewById(R.id.enable_location);
+                        if(enable_location.isChecked()) {
+                            isLocationEnabled = true;
+                        } else {
+                            isLocationEnabled = false;
+                        }
+
+                        Log.i("locationInfo", "" + isLocationEnabled);
+
+                    }
+                });
+
+        alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+                Log.i("locationInfo", "" + isLocationEnabled);
+            }
+        });
+
+        alertDialogBuilder.show();
+    }
+
+    public void logoutClicked() {
+        currentUsername = null;
+        saveUsernameInstance();
+
+        MenuItem action_login = menu.findItem(R.id.action_login);
+        MenuItem action_user = menu.findItem(R.id.action_user);
+        action_user.setTitle(currentUsername);
+        action_login.setVisible(true);
+        action_user.setVisible(false);
+        isLoggedIn = false;
+    }
+
+
+    /* DB Operations and file creation methods */
     private boolean createCsvFile() {
         String filename = "timestamps.csv";
 
@@ -302,97 +430,22 @@ public class LogIn extends AppCompatActivity {
 
     }
 
-    private void saveLoggedInUser() {
-        currentTimestamp = getCurrentTimestamp();
-        Log.i("locationInfo", "\n status: " + isLocationEnabled + "\n long:" + currentLongitude + "\n lat: " + currentLatitude);
-        saveToDB();
-    }
+    /* OnClick Methods */
+    public void clearDB(View view) {
+        // Define 'where' part of query.
+        //String selection = FeedReaderContract.FeedEntry.COLUMN_NAME_TITLE + " LIKE ?";
+        // Specify arguments in placeholder order.
+        //String[] selectionArgs = { "MyTitle" };
+        // Issue SQL statement.
 
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
 
-    public void loginClicked() {
-        LayoutInflater li = LayoutInflater.from(this);
-        View prompt = li.inflate(R.layout.login_dialog, null);
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-        alertDialogBuilder.setView(prompt);
-        final EditText user = prompt.findViewById(R.id.login_name);
-        //user.setText(Login_USER); //login_USER is loaded from previous session (optional)
-        alertDialogBuilder.setTitle("Login");
-        alertDialogBuilder.setCancelable(false)
-                .setPositiveButton("Submit", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-                        currentUsername = user.getText().toString();
-                        MenuItem action_login = menu.findItem(R.id.action_login);
-                        MenuItem action_user = menu.findItem(R.id.action_user);
-                        action_user.setTitle(currentUsername);
-                        action_login.setVisible(false);
-                        action_user.setVisible(true);
-                        isLoggedIn = true;
-
-                        saveLoggedInUser();
-
-                    }
-                });
-
-        alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int id) {
-                dialog.cancel();
-            }
-        });
-
-        alertDialogBuilder.show();
-    }
-
-    public void settingsClicked() {
-        LayoutInflater li = LayoutInflater.from(this);
-        final View prompt = li.inflate(R.layout.settings_dialog, null);
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-        alertDialogBuilder.setView(prompt);
-        alertDialogBuilder.setTitle("Settings");
-
-        RadioGroup radioGroup = (RadioGroup) prompt.findViewById(R.id.radio_location_group);
-        if(isLocationEnabled) {
-            radioGroup.check(R.id.enable_location);
+        int deletedRows = db.delete(FeedReaderContract.FeedEntry.TABLE_NAME, null, null);
+        if(deletedRows > 0) {
+            Toast.makeText(getApplicationContext(), deletedRows + " rows were deleted from the DB.", Toast.LENGTH_SHORT).show();
         } else {
-            radioGroup.check(R.id.disable_location);
+            Toast.makeText(getApplicationContext(), "No rows to be cleared.", Toast.LENGTH_SHORT).show();
         }
-
-        alertDialogBuilder.setCancelable(false)
-                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-                        RadioButton enable_location = (RadioButton) prompt.findViewById(R.id.enable_location);
-                        if(enable_location.isChecked()) {
-                            isLocationEnabled = true;
-                        } else {
-                            isLocationEnabled = false;
-                        }
-
-                        Log.i("locationInfo", "" + isLocationEnabled);
-
-                    }
-                });
-
-        alertDialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int id) {
-                dialog.cancel();
-                Log.i("locationInfo", "" + isLocationEnabled);
-            }
-        });
-
-        alertDialogBuilder.show();
-    }
-
-    public void logoutClicked() {
-        currentUsername = "user";
-        MenuItem action_login = menu.findItem(R.id.action_login);
-        MenuItem action_user = menu.findItem(R.id.action_user);
-        action_user.setTitle(currentUsername);
-        action_login.setVisible(true);
-        action_user.setVisible(false);
-        isLoggedIn = false;
     }
 
 }
